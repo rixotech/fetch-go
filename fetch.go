@@ -49,6 +49,8 @@ import (
 	"context"
 	"net/http"
 	"time"
+
+	"github.com/rixotech/fetch-go/helpers"
 )
 
 // ─── Package-level default client ────────────────────────────────────────────
@@ -65,26 +67,56 @@ var defaultClient = &Client{
 func SetDefaultTimeout(d time.Duration) { defaultClient.httpClient.Timeout = d }
 
 // Get issues a one-off GET request without a base URL.
-func Get(ctx context.Context, rawURL string) *Request {
+func Get(rawURL string) *Request {
+	ctx := helpers.Ctx()
 	return defaultClient.Get(ctx, rawURL)
 }
 
 // Post issues a one-off POST request without a base URL.
-func Post(ctx context.Context, rawURL string, v any) *Request {
+func Post(rawURL string, v any) *Request {
+	ctx := helpers.Ctx()
 	return defaultClient.Post(ctx, rawURL, v)
 }
 
 // Put issues a one-off PUT request without a base URL.
-func Put(ctx context.Context, rawURL string, v any) *Request {
+func Put(rawURL string, v any) *Request {
+	ctx := helpers.Ctx()
 	return defaultClient.Put(ctx, rawURL, v)
 }
 
 // Patch issues a one-off PATCH request without a base URL.
-func Patch(ctx context.Context, rawURL string, v any) *Request {
+func Patch(rawURL string, v any) *Request {
+	ctx := helpers.Ctx()
 	return defaultClient.Patch(ctx, rawURL, v)
 }
 
 // Delete issues a one-off DELETE request without a base URL.
-func Delete(ctx context.Context, rawURL string, v any) *Request {
+func Delete(rawURL string, v any) *Request {
+	ctx := helpers.Ctx()
+	return defaultClient.Delete(ctx, rawURL, v)
+}
+
+// Get issues a one-off GET request without a base URL.
+func GetWithContext(ctx context.Context, rawURL string) *Request {
+	return defaultClient.Get(ctx, rawURL)
+}
+
+// Post issues a one-off POST request without a base URL.
+func PostWithContext(ctx context.Context, rawURL string, v any) *Request {
+	return defaultClient.Post(ctx, rawURL, v)
+}
+
+// Put issues a one-off PUT request without a base URL.
+func PutWithContext(ctx context.Context, rawURL string, v any) *Request {
+	return defaultClient.Put(ctx, rawURL, v)
+}
+
+// Patch issues a one-off PATCH request without a base URL.
+func PatchWithContext(ctx context.Context, rawURL string, v any) *Request {
+	return defaultClient.Patch(ctx, rawURL, v)
+}
+
+// Delete issues a one-off DELETE request without a base URL.
+func DeleteWithContext(ctx context.Context, rawURL string, v any) *Request {
 	return defaultClient.Delete(ctx, rawURL, v)
 }

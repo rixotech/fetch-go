@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/rixotech/fetch-go"
+	"github.com/rixotech/fetch-go/helpers"
 )
 
 // ─── Test helpers ─────────────────────────────────────────────────────────────
@@ -40,8 +41,6 @@ func echoHandler() http.HandlerFunc {
 	}
 }
 
-func ctx() context.Context { return context.Background() }
-
 // ─── Client construction ──────────────────────────────────────────────────────
 
 func TestNew_InvalidURL(t *testing.T) {
@@ -69,7 +68,7 @@ func TestGet_200(t *testing.T) {
 	client := fetch.New(srv.URL)
 
 	var got map[string]string
-	if err := client.Get(ctx(), "/").Scan(&got); err != nil {
+	if err := client.Get(helpers.Ctx(), "/").Scan(&got); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if got["hello"] != "world" {
@@ -86,7 +85,7 @@ func TestGet_WithParams(t *testing.T) {
 	defer srv.Close()
 
 	client := fetch.New(srv.URL)
-	_, err := client.Get(ctx(), "/search").
+	_, err := client.Get(helpers.Ctx(), "/search").
 		WithParam("q", "golang").
 		WithParam("page", "2").
 		Do()
@@ -119,7 +118,7 @@ func TestPost_JSONBody(t *testing.T) {
 
 	client := fetch.New(srv.URL)
 	var echo payload
-	err := client.Post(ctx(), "/", payload{Name: "Alice"}).Scan(&echo)
+	err := client.Post(helpers.Ctx(), "/", payload{Name: "Alice"}).Scan(&echo)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -135,7 +134,7 @@ func TestDo_FetchError_404(t *testing.T) {
 	defer srv.Close()
 
 	client := fetch.New(srv.URL)
-	_, err := client.Get(ctx(), "/missing").Do()
+	_, err := client.Get(helpers.Ctx(), "/missing").Do()
 	if err == nil {
 		t.Fatal("expected error for 404")
 	}
@@ -156,7 +155,7 @@ func TestDo_FetchError_500(t *testing.T) {
 	srv := httptest.NewServer(jsonHandler(500, map[string]string{"error": "internal"}))
 	defer srv.Close()
 
-	_, err := fetch.New(srv.URL).Get(ctx(), "/").Do()
+	_, err := fetch.New(srv.URL).Get(helpers.Ctx(), "/").Do()
 	fe, _ := fetch.AsFetchError(err)
 	if !fe.IsServerError() {
 		t.Fatal("IsServerError() should be true")
@@ -168,7 +167,7 @@ func TestWithoutErrorOnStatus(t *testing.T) {
 	defer srv.Close()
 
 	client := fetch.New(srv.URL, fetch.WithoutErrorOnStatus())
-	resp, err := client.Get(ctx(), "/").Do()
+	resp, err := client.Get(helpers.Ctx(), "/").Do()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -190,7 +189,7 @@ func TestHeaders_DefaultAndPerRequest(t *testing.T) {
 	client := fetch.New(srv.URL,
 		fetch.WithDefaultHeaders(map[string]string{"X-App": "test-app"}),
 	)
-	_, err := client.Get(ctx(), "/").
+	_, err := client.Get(helpers.Ctx(), "/").
 		WithHeader("X-Request-ID", "abc123").
 		Do()
 	if err != nil {
@@ -213,7 +212,7 @@ func TestBearerToken(t *testing.T) {
 	defer srv.Close()
 
 	client := fetch.New(srv.URL)
-	_, err := client.Get(ctx(), "/").WithBearerToken("my-secret-token").Do()
+	_, err := client.Get(helpers.Ctx(), "/").WithBearerToken("my-secret-token").Do()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -235,7 +234,7 @@ func TestWithFormBody(t *testing.T) {
 	defer srv.Close()
 
 	client := fetch.New(srv.URL)
-	_, err := client.Post(ctx(), "/login", nil).
+	_, err := client.Post(helpers.Ctx(), "/login", nil).
 		WithFormBody(map[string]string{"username": "alice", "password": "s3cr3t"}).
 		Do()
 	if err != nil {
@@ -265,7 +264,7 @@ func TestRequestInterceptor(t *testing.T) {
 		return req, nil
 	})
 
-	if _, err := client.Get(ctx(), "/").Do(); err != nil {
+	if _, err := client.Get(helpers.Ctx(), "/").Do(); err != nil {
 		t.Fatal(err)
 	}
 	if xCustom != "injected" {
@@ -284,7 +283,7 @@ func TestResponseInterceptor(t *testing.T) {
 		return resp, nil
 	})
 
-	if _, err := client.Get(ctx(), "/").Do(); err != nil {
+	if _, err := client.Get(helpers.Ctx(), "/").Do(); err != nil {
 		t.Fatal(err)
 	}
 	if interceptedStatus != 200 {
@@ -302,7 +301,7 @@ func TestTimeout(t *testing.T) {
 	defer srv.Close()
 
 	client := fetch.New(srv.URL, fetch.WithTimeout(50*time.Millisecond))
-	_, err := client.Get(ctx(), "/").Do()
+	_, err := client.Get(helpers.Ctx(), "/").Do()
 	if err == nil {
 		t.Fatal("expected timeout error")
 	}
@@ -318,7 +317,7 @@ func TestResponse_Text(t *testing.T) {
 	defer srv.Close()
 
 	client := fetch.New(srv.URL)
-	resp, err := client.Get(ctx(), "/").Do()
+	resp, err := client.Get(helpers.Ctx(), "/").Do()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -338,7 +337,7 @@ func TestResponse_Bytes(t *testing.T) {
 	defer srv.Close()
 
 	client := fetch.New(srv.URL)
-	resp, err := client.Get(ctx(), "/").Do()
+	resp, err := client.Get(helpers.Ctx(), "/").Do()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -358,7 +357,7 @@ func TestPackageLevel_Get(t *testing.T) {
 	defer srv.Close()
 
 	var got map[string]string
-	if err := fetch.Get(ctx(), srv.URL+"/").Scan(&got); err != nil {
+	if err := fetch.GetWithContext(helpers.Ctx(), srv.URL+"/").Scan(&got); err != nil {
 		t.Fatal(err)
 	}
 	if got["ok"] != "true" {

@@ -20,7 +20,7 @@ It wraps `net/http` with a fluent builder API, typed errors, interceptors, and
 first-class JSON support — without hiding the standard library from you.
 
 ```go
-err := fetch.Get(ctx, "https://jsonplaceholder.typicode.com/posts").Scan(&posts)
+err := fetch.Get("https://jsonplaceholder.typicode.com/posts").Scan(&posts)
 if err != nil {
     log.Fatal("Fetch error:", err)
 }
@@ -33,22 +33,22 @@ log.Printf("First post: %+v", posts)
 client := fetch.New("https://api.example.com")
 
 var users []User
-err := client.Get(ctx, "/users").
+err := client.Get("/users").
     WithParam("page", "1").
     WithBearerToken(token).
     Scan(&users)
 
 // POST with JSON body
-resp, err := client.Post(ctx, "/users", User{Name: "Alice"}).Do()
+resp, err := client.Post("/users", User{Name: "Alice"}).Do()
 
 // PUT
-resp, err := client.Put(ctx, "/users/1", User{Name: "Alice Updated"}).Do()
+resp, err := client.Put("/users/1", User{Name: "Alice Updated"}).Do()
 
 // PATCH
-resp, err := client.Patch(ctx, "/users/1", map[string]string{"name": "Alice"}).Do()
+resp, err := client.Patch("/users/1", map[string]string{"name": "Alice"}).Do()
 
 // DELETE (body is optional — pass nil)
-resp, err := client.Delete(ctx, "/users/1", nil).Do()
+resp, err := client.Delete("/users/1", nil).Do()
 ```
 
 ---
@@ -148,14 +148,14 @@ func main() {
 
     // GET — decode response into a struct
     var post Post
-    if err := client.Get(ctx, "/posts/1").Scan(&post); err != nil {
+    if err := client.GetWithContext(ctx, "/posts/1").Scan(&post); err != nil {
         log.Fatal(err)
     }
     fmt.Println(post.Title)
 
     // POST — send JSON body, decode created resource
     var created Post
-    err = client.Post(ctx, "/posts", Post{Title: "Hello", Body: "World"}).
+    err = client.PostWithContext(ctx, "/posts", Post{Title: "Hello", Body: "World"}).
         Scan(&created)
     if err != nil {
         log.Fatal(err)
@@ -197,13 +197,6 @@ client, err := fetch.New("https://api.example.com",
 )
 ```
 
-**`MustNew` — for package-level initialization:**
-
-```go
-// Panics on invalid URL; safe to call at package init time.
-var apiClient = fetch.MustNew("https://api.example.com")
-```
-
 ---
 
 ### Making Requests
@@ -211,28 +204,45 @@ var apiClient = fetch.MustNew("https://api.example.com")
 Every method returns a `*Request` builder. Nothing is sent until you call `Do()` or `Scan()`.
 
 ```go
-ctx := context.Background()
 
 // GET
-resp, err := client.Get(ctx, "/users").Do()
+resp, err := client.Get("/users").Do()
 
 // POST with JSON body
-resp, err := client.Post(ctx, "/users", User{Name: "Alice"}).Do()
+resp, err := client.Post("/users", User{Name: "Alice"}).Do()
 
 // PUT
-resp, err := client.Put(ctx, "/users/1", User{Name: "Alice Updated"}).Do()
+resp, err := client.Put("/users/1", User{Name: "Alice Updated"}).Do()
 
 // PATCH
-resp, err := client.Patch(ctx, "/users/1", map[string]string{"name": "Alice"}).Do()
+resp, err := client.Patch("/users/1", map[string]string{"name": "Alice"}).Do()
 
 // DELETE (body is optional — pass nil)
-resp, err := client.Delete(ctx, "/users/1", nil).Do()
+resp, err := client.Delete("/users/1", nil).Do()
 
 // HEAD
-resp, err := client.Head(ctx, "/users").Do()
+resp, err := client.Head("/users").Do()
 
 // OPTIONS
-resp, err := client.Options(ctx, "/users").Do()
+resp, err := client.Options("/users").Do()
+
+
+// With context
+ctx := context.Background()
+
+resp, err := client.GetWithContext(ctx, "/users").Do()
+
+// POST with JSON body
+resp, err := client.PostWithContext(ctx, "/users", User{Name: "Alice"}).Do()
+
+// PUT
+resp, err := client.PutWithContext(ctx, "/users/1", User{Name: "Alice Updated"}).Do()
+
+// PATCH
+resp, err := client.PatchWithContext(ctx, "/users/1", map[string]string{"name": "Alice"}).Do()
+
+// DELETE (body is optional — pass nil)
+resp, err := client.DeleteWithContext(ctx, "/users/1", nil).Do()
 ```
 
 ---
@@ -241,7 +251,7 @@ resp, err := client.Options(ctx, "/users").Do()
 
 ```go
 // Set multiple at once
-resp, err := client.Get(ctx, "/search").
+resp, err := client.Get("/search").
     WithParams(map[string]string{
         "q":     "golang",
         "page":  "1",
@@ -250,7 +260,7 @@ resp, err := client.Get(ctx, "/search").
     Do()
 
 // Or set individually
-resp, err := client.Get(ctx, "/search").
+resp, err := client.Get("/search").
     WithParam("q", "golang").
     WithParam("page", "1").
     Do()
@@ -264,7 +274,7 @@ resp, err := client.Get(ctx, "/search").
 
 ```go
 // Set multiple headers
-resp, err := client.Get(ctx, "/data").
+resp, err := client.Get("/data").
     WithHeaders(map[string]string{
         "X-Request-ID": "abc-123",
         "X-Tenant-ID":  "acme",
@@ -272,17 +282,17 @@ resp, err := client.Get(ctx, "/data").
     Do()
 
 // Set a single header
-resp, err := client.Get(ctx, "/data").
+resp, err := client.Get("/data").
     WithHeader("X-Request-ID", "abc-123").
     Do()
 
 // Bearer token shorthand
-resp, err := client.Get(ctx, "/profile").
+resp, err := client.Get("/profile").
     WithBearerToken("your-jwt-token").
     Do()
 
 // HTTP Basic Auth
-resp, err := client.Get(ctx, "/admin").
+resp, err := client.Get("/admin").
     WithBasicAuth("username", "password").
     Do()
 ```
@@ -301,7 +311,7 @@ type CreateUserReq struct {
     Email string `json:"email"`
 }
 
-resp, err := client.Post(ctx, "/users", CreateUserReq{
+resp, err := client.Post("/users", CreateUserReq{
     Name:  "Alice",
     Email: "alice@example.com",
 }).Do()
@@ -311,12 +321,12 @@ resp, err := client.Post(ctx, "/users", CreateUserReq{
 
 ```go
 // JSON
-resp, err := client.Post(ctx, "/data", nil).
+resp, err := client.Post("/data", nil).
     WithJSONBody(map[string]any{"key": "value"}).
     Do()
 
 // URL-encoded form
-resp, err := client.Post(ctx, "/login", nil).
+resp, err := client.Post("/login", nil).
     WithFormBody(map[string]string{
         "username": "alice",
         "password": "s3cr3t",
@@ -325,7 +335,7 @@ resp, err := client.Post(ctx, "/login", nil).
 
 // Multipart form (file upload)
 fileBytes, _ := os.ReadFile("avatar.png")
-resp, err := client.Post(ctx, "/upload", nil).
+resp, err := client.Post("/upload", nil).
     WithMultipartBody(map[string]any{
         "avatar": fileBytes,  // []byte → file field
         "caption": "My photo", // string → text field
@@ -333,14 +343,14 @@ resp, err := client.Post(ctx, "/upload", nil).
     Do()
 
 // Plain text
-resp, err := client.Post(ctx, "/logs", nil).
+resp, err := client.Post("/logs", nil).
     WithTextBody("something happened at 12:00").
     Do()
 
 // Raw reader (e.g. a file, a buffer)
 f, _ := os.Open("data.bin")
 defer f.Close()
-resp, err := client.Post(ctx, "/upload", nil).
+resp, err := client.Post("/upload", nil).
     WithRawBody(f, "application/octet-stream").
     Do()
 ```
@@ -354,13 +364,13 @@ resp, err := client.Post(ctx, "/upload", nil).
 ```go
 var user User
 // Executes the request AND decodes the JSON body in one call.
-err := client.Get(ctx, "/users/1").Scan(&user)
+err := client.Get("/users/1").Scan(&user)
 ```
 
 **`Do` — when you need the response itself:**
 
 ```go
-resp, err := client.Get(ctx, "/users/1").Do()
+resp, err := client.Get("/users/1").Do()
 if err != nil {
     return err
 }
@@ -393,7 +403,7 @@ you never need to check `resp.IsOK()` manually.
 
 ```go
 var user User
-err := client.Get(ctx, "/users/99").Scan(&user)
+err := client.Get("/users/99").Scan(&user)
 if err != nil {
     if fe, ok := fetch.AsFetchError(err); ok {
         // HTTP-level error
@@ -424,7 +434,7 @@ client, _ := fetch.New("https://api.example.com",
     fetch.WithoutErrorOnStatus(),
 )
 
-resp, err := client.Get(ctx, "/maybe-404").Do()
+resp, err := client.Get("/maybe-404").Do()
 if err != nil {
     return err // only network errors reach here
 }
@@ -483,10 +493,10 @@ the package-level functions. They work without a base URL.
 ```go
 // No client needed — just pass a full URL.
 var post Post
-err := fetch.Get(ctx, "https://jsonplaceholder.typicode.com/posts/1").
+err := fetch.Get("https://jsonplaceholder.typicode.com/posts/1").
     Scan(&post)
 
-err = fetch.Post(ctx, "https://example.com/events",
+err = fetch.Post("https://example.com/events",
     map[string]string{"event": "signup"},
 ).Do()
 
@@ -503,7 +513,6 @@ fetch.SetDefaultTimeout(5 * time.Second)
 | Method | Description |
 |---|---|
 | `fetch.New(baseURL, ...Option)` | Create a new client |
-| `fetch.MustNew(baseURL, ...Option)` | Create a client, panic on error |
 | `client.UseRequest(...fn)` | Register request interceptor(s) |
 | `client.UseResponse(...fn)` | Register response interceptor(s) |
 
