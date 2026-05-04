@@ -20,6 +20,27 @@ It wraps `net/http` with a fluent builder API, typed errors, interceptors, and
 first-class JSON support — without hiding the standard library from you.
 
 ```go
+resp, err := fetch.Get(context.Background(), "https://jsonplaceholder.typicode.com/posts").Do()
+	if err != nil {
+		log.Fatal("Fetch error:", err)
+	}
+
+	posts := []struct {
+		UserID int    `json:"userId"`
+		ID     int    `json:"id"`
+		Title  string `json:"title"`
+		Body   string `json:"body"`
+	}{}
+
+	if err := resp.JSON(&posts); err != nil {
+		log.Fatal("JSON parse error:", err)
+	}
+	log.Printf("Fetched %d posts", len(posts))
+	log.Printf("First post: %+v", posts)
+
+
+// -------------> With Client <------------- //
+
 client := fetch.New("https://api.example.com")
 
 var users []User
@@ -27,8 +48,6 @@ err := client.Get(ctx, "/users").
     WithParam("page", "1").
     WithBearerToken(token).
     Scan(&users)
-
-// -------------> OTHER METHODS <------------- //
 
 // POST with JSON body
 resp, err := client.Post(ctx, "/users", User{Name: "Alice"}).Do()
