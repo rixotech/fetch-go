@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🌐 fetch
+# 🌐 fetch-go
 
 **An ergonomic, axios-inspired HTTP client for Go**
 
