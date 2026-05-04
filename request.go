@@ -256,6 +256,11 @@ func (r *Request) jsonBody(v any) *Request {
 // for any non-2xx status code so the caller does not need to check
 // resp.IsOK() manually.
 func (r *Request) Do() (*Response, error) {
+	// Surface client construction errors (e.g. bad base URL) before
+	// surfacing any request-building errors.
+	if r.client.err != nil {
+		return nil, r.client.err
+	}
 	if r.err != nil {
 		return nil, r.err
 	}

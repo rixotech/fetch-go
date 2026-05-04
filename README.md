@@ -20,13 +20,27 @@ It wraps `net/http` with a fluent builder API, typed errors, interceptors, and
 first-class JSON support — without hiding the standard library from you.
 
 ```go
-client := fetch.MustNew("https://api.example.com")
+client := fetch.New("https://api.example.com")
 
 var users []User
 err := client.Get(ctx, "/users").
     WithParam("page", "1").
     WithBearerToken(token).
     Scan(&users)
+
+// -------------> OTHER METHODS <------------- //
+
+// POST with JSON body
+resp, err := client.Post(ctx, "/users", User{Name: "Alice"}).Do()
+
+// PUT
+resp, err := client.Put(ctx, "/users/1", User{Name: "Alice Updated"}).Do()
+
+// PATCH
+resp, err := client.Patch(ctx, "/users/1", map[string]string{"name": "Alice"}).Do()
+
+// DELETE (body is optional — pass nil)
+resp, err := client.Delete(ctx, "/users/1", nil).Do()
 ```
 
 ---

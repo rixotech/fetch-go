@@ -3,16 +3,22 @@
 // # Quick start
 //
 //	// Create a reusable client bound to a base URL.
-//	client, err := fetch.New("https://api.example.com",
+//	// New never returns an error — any problem is stored and returned by Do/Scan.
+//	client := fetch.New("https://api.example.com",
 //	    fetch.WithTimeout(10*time.Second),
 //	    fetch.WithDefaultHeaders(map[string]string{
 //	        "Accept": "application/json",
 //	    }),
 //	)
 //
+//	// Optionally check for construction errors up front (e.g. bad env var URL).
+//	if err := client.Error(); err != nil {
+//	    log.Fatal(err)
+//	}
+//
 //	// GET with query params — decode JSON response.
 //	var users []User
-//	err = client.Get(ctx, "/users").
+//	err := client.Get(ctx, "/users").
 //	    WithParam("page", "1").
 //	    Scan(&users)
 //

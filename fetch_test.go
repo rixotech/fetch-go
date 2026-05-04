@@ -45,19 +45,18 @@ func ctx() context.Context { return context.Background() }
 // ─── Client construction ──────────────────────────────────────────────────────
 
 func TestNew_InvalidURL(t *testing.T) {
-	_, err := fetch.New("://bad-url")
-	if err == nil {
+	client := fetch.New("://bad-url")
+	if client.Error() == nil {
 		t.Fatal("expected error for invalid URL")
 	}
 }
 
-func TestMustNew_Panics(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatal("expected panic for invalid URL")
-		}
-	}()
-	fetch.MustNew("://bad-url")
+func TestNew_InvalidURL_SurfacedByDo(t *testing.T) {
+	client := fetch.New("://bad-url")
+	_, err := client.Get(context.Background(), "/").Do()
+	if err == nil {
+		t.Fatal("expected Do() to return construction error")
+	}
 }
 
 // ─── GET ──────────────────────────────────────────────────────────────────────
@@ -67,7 +66,7 @@ func TestGet_200(t *testing.T) {
 	srv := httptest.NewServer(jsonHandler(200, want))
 	defer srv.Close()
 
-	client := fetch.MustNew(srv.URL)
+	client := fetch.New(srv.URL)
 
 	var got map[string]string
 	if err := client.Get(ctx(), "/").Scan(&got); err != nil {
@@ -86,7 +85,7 @@ func TestGet_WithParams(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	client := fetch.MustNew(srv.URL)
+	client := fetch.New(srv.URL)
 	_, err := client.Get(ctx(), "/search").
 		WithParam("q", "golang").
 		WithParam("page", "2").
@@ -118,7 +117,7 @@ func TestPost_JSONBody(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	client := fetch.MustNew(srv.URL)
+	client := fetch.New(srv.URL)
 	var echo payload
 	err := client.Post(ctx(), "/", payload{Name: "Alice"}).Scan(&echo)
 	if err != nil {
@@ -135,7 +134,7 @@ func TestDo_FetchError_404(t *testing.T) {
 	srv := httptest.NewServer(jsonHandler(404, map[string]string{"error": "not found"}))
 	defer srv.Close()
 
-	client := fetch.MustNew(srv.URL)
+	client := fetch.New(srv.URL)
 	_, err := client.Get(ctx(), "/missing").Do()
 	if err == nil {
 		t.Fatal("expected error for 404")
@@ -157,7 +156,7 @@ func TestDo_FetchError_500(t *testing.T) {
 	srv := httptest.NewServer(jsonHandler(500, map[string]string{"error": "internal"}))
 	defer srv.Close()
 
-	_, err := fetch.MustNew(srv.URL).Get(ctx(), "/").Do()
+	_, err := fetch.New(srv.URL).Get(ctx(), "/").Do()
 	fe, _ := fetch.AsFetchError(err)
 	if !fe.IsServerError() {
 		t.Fatal("IsServerError() should be true")
@@ -168,7 +167,7 @@ func TestWithoutErrorOnStatus(t *testing.T) {
 	srv := httptest.NewServer(jsonHandler(404, map[string]string{"reason": "gone"}))
 	defer srv.Close()
 
-	client := fetch.MustNew(srv.URL, fetch.WithoutErrorOnStatus())
+	client := fetch.New(srv.URL, fetch.WithoutErrorOnStatus())
 	resp, err := client.Get(ctx(), "/").Do()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -188,7 +187,7 @@ func TestHeaders_DefaultAndPerRequest(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	client := fetch.MustNew(srv.URL,
+	client := fetch.New(srv.URL,
 		fetch.WithDefaultHeaders(map[string]string{"X-App": "test-app"}),
 	)
 	_, err := client.Get(ctx(), "/").
@@ -213,7 +212,7 @@ func TestBearerToken(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	client := fetch.MustNew(srv.URL)
+	client := fetch.New(srv.URL)
 	_, err := client.Get(ctx(), "/").WithBearerToken("my-secret-token").Do()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -235,7 +234,7 @@ func TestWithFormBody(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	client := fetch.MustNew(srv.URL)
+	client := fetch.New(srv.URL)
 	_, err := client.Post(ctx(), "/login", nil).
 		WithFormBody(map[string]string{"username": "alice", "password": "s3cr3t"}).
 		Do()
@@ -260,7 +259,7 @@ func TestRequestInterceptor(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	client := fetch.MustNew(srv.URL)
+	client := fetch.New(srv.URL)
 	client.UseRequest(func(req *http.Request) (*http.Request, error) {
 		req.Header.Set("X-Custom", "injected")
 		return req, nil
@@ -279,7 +278,7 @@ func TestResponseInterceptor(t *testing.T) {
 	defer srv.Close()
 
 	var interceptedStatus int
-	client := fetch.MustNew(srv.URL)
+	client := fetch.New(srv.URL)
 	client.UseResponse(func(resp *http.Response) (*http.Response, error) {
 		interceptedStatus = resp.StatusCode
 		return resp, nil
@@ -302,7 +301,7 @@ func TestTimeout(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	client := fetch.MustNew(srv.URL, fetch.WithTimeout(50*time.Millisecond))
+	client := fetch.New(srv.URL, fetch.WithTimeout(50*time.Millisecond))
 	_, err := client.Get(ctx(), "/").Do()
 	if err == nil {
 		t.Fatal("expected timeout error")
@@ -318,7 +317,7 @@ func TestResponse_Text(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	client := fetch.MustNew(srv.URL)
+	client := fetch.New(srv.URL)
 	resp, err := client.Get(ctx(), "/").Do()
 	if err != nil {
 		t.Fatal(err)
@@ -338,7 +337,7 @@ func TestResponse_Bytes(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	client := fetch.MustNew(srv.URL)
+	client := fetch.New(srv.URL)
 	resp, err := client.Get(ctx(), "/").Do()
 	if err != nil {
 		t.Fatal(err)

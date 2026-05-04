@@ -12,16 +12,13 @@ import (
 
 // ExampleNew demonstrates creating a reusable client with common defaults.
 func ExampleNew() {
-	client, err := fetch.New("https://api.example.com",
+	client := fetch.New("https://api.example.com",
 		fetch.WithTimeout(10*time.Second),
 		fetch.WithDefaultHeaders(map[string]string{
 			"Accept":     "application/json",
 			"User-Agent": "my-app/1.0",
 		}),
 	)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	// Attach a request interceptor that injects an auth token on every call.
 	client.UseRequest(func(req *http.Request) (*http.Request, error) {
@@ -42,11 +39,11 @@ func ExampleNew() {
 		ID   int    `json:"id"`
 		Name string `json:"name"`
 	}
-	err = client.Get(ctx, "/users").
+	client.Get(ctx, "/users").
 		WithParam("page", "1").
 		WithParam("limit", "20").
 		Scan(&users)
-	if err != nil {
+	if err := client.Error(); err != nil {
 		// Non-2xx responses surface as *fetch.FetchError.
 		if fe, ok := fetch.AsFetchError(err); ok {
 			fmt.Printf("HTTP %d: %s\n", fe.StatusCode, fe.Body)
@@ -66,33 +63,33 @@ func ExampleNew() {
 	}
 
 	var created User
-	err = client.Post(ctx, "/users", CreateUserReq{
+	client.Post(ctx, "/users", CreateUserReq{
 		Name:  "Alice",
 		Email: "alice@example.com",
 	}).Scan(&created)
-	if err != nil {
+	if err := client.Error(); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Printf("created user id=%d\n", created.ID)
 
 	// ── PUT ───────────────────────────────────────────────────────────────
 	var updated User
-	err = client.Put(ctx, "/users/1", CreateUserReq{Name: "Alice Updated"}).
+	client.Put(ctx, "/users/1", CreateUserReq{Name: "Alice Updated"}).
 		Scan(&updated)
-	if err != nil {
+	if err := client.Error(); err != nil {
 		log.Fatal(err)
 	}
 
 	// ── PATCH ─────────────────────────────────────────────────────────────
-	err = client.Patch(ctx, "/users/1", map[string]string{"name": "Alice V2"}).
+	client.Patch(ctx, "/users/1", map[string]string{"name": "Alice V2"}).
 		Scan(&updated)
-	if err != nil {
+	if err := client.Error(); err != nil {
 		log.Fatal(err)
 	}
 
 	// ── DELETE ────────────────────────────────────────────────────────────
 	resp, err := client.Delete(ctx, "/users/1", nil).Do()
-	if err != nil {
+	if err := client.Error(); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Printf("delete status: %s\n", resp.Status)
