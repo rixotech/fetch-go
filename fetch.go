@@ -18,13 +18,13 @@
 //
 //	// GET with query params — decode JSON response.
 //	var users []User
-//	err := client.Get(ctx, "/users").
+//	err := client.Get("/users").
 //	    WithParam("page", "1").
 //	    Scan(&users)
 //
 //	// POST with JSON body.
 //	var created User
-//	err = client.Post(ctx, "/users", User{Name: "Alice"}).
+//	err = client.Post("/users", User{Name: "Alice"}).
 //	    WithBearerToken(token).
 //	    Scan(&created)
 //
@@ -39,10 +39,18 @@
 // By default, any non-2xx response is returned as *FetchError, which carries
 // StatusCode, Status, Body, and Header fields.
 //
-//	resp, err := client.Get(ctx, "/secret").Do()
+//	resp, err := client.Get("/secret").Do()
 //	if fe, ok := fetch.AsFetchError(err); ok {
 //	    if fe.IsUnauthorized() { ... }
 //	}
+
+// The package-level functions (Get, Post, etc.) use a helper to create a context with a timeout. However, if you want to provide your own context (e.g., for cancellation or deadlines), you can use the WithContext variants of these functions. They allow you to pass in your own context while still using the default client for convenience.
+// For example:
+
+// ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+// defer cancel()
+// err := fetch.GetWithContext(ctx, "https://api.example.com/data").Scan(&result)
+
 package fetch
 
 import (
